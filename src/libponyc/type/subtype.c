@@ -830,6 +830,25 @@ static bool is_nominal_sub_structural(ast_t* sub, ast_t* super,
   ast_t* sub_def = (ast_t*)ast_data(sub);
   ast_t* super_def = (ast_t*)ast_data(super);
 
+  // We could be reporting false negatives if the traits pass hasn't processed
+  // our defs yet.
+  pass_id sub_pass = (pass_id)ast_checkflag(sub_def, AST_FLAG_PASS_MASK);
+  pass_id super_pass = (pass_id)ast_checkflag(super_def, AST_FLAG_PASS_MASK);
+  pony_assert((sub_pass >= PASS_TRAITS) && (super_pass >= PASS_TRAITS));
+  (void)sub_pass; (void)super_pass;
+
+  if(ast_has_annotation(sub_def, "nosupertype"))
+  {
+    if(errorf != NULL)
+    {
+      ast_error_frame(errorf, sub,
+        "%s is not a subtype of %s: it is marked 'nosupertype'",
+        ast_print_type(sub), ast_print_type(super));
+    }
+
+    return false;
+  }
+
   if(is_bare(sub) != is_bare(super))
   {
     if(errorf != NULL)

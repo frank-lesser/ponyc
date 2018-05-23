@@ -300,7 +300,8 @@ PONY_API ATTRIBUTE_MALLOC void* pony_alloc_large(pony_ctx_t* ctx, size_t size);
 /** Reallocate memory on the current actor's heap.
  *
  * Take heap memory and expand it. This is a no-op if there's already enough
- * space, otherwise it allocates and copies.
+ * space, otherwise it allocates and copies. The old memory must have been
+ * allocated via pony_alloc(), pony_alloc_small(), or pony_alloc_large().
  */
 PONY_API ATTRIBUTE_MALLOC void* pony_realloc(pony_ctx_t* ctx, void* p, size_t size);
 
@@ -484,6 +485,8 @@ PONY_API void pony_register_thread();
  * the Pony runtime.
  */
 PONY_API void pony_unregister_thread();
+
+PONY_API int32_t pony_scheduler_index(pony_ctx_t* ctx);
 
 /** Signals that the pony runtime may terminate.
  *

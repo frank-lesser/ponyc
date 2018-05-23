@@ -151,6 +151,30 @@ static ast_result_t sugar_module(pass_opt_t* opt, ast_t* ast)
 }
 
 
+static void sugar_docstring(ast_t* ast)
+{
+  pony_assert(ast != NULL);
+
+  AST_GET_CHILDREN(ast, cap, id, type_params, params, return_type,
+    error, body, docstring);
+
+  if(ast_id(docstring) == TK_NONE)
+  {
+    ast_t* first = ast_child(body);
+
+    // First expression in body is a docstring if it is a string literal and
+    // there are any other expressions in the body sequence
+    if((first != NULL) &&
+      (ast_id(first) == TK_STRING) &&
+      (ast_sibling(first) != NULL))
+    {
+      ast_pop(body);
+      ast_replace(&docstring, first);
+    }
+  }
+}
+
+
 static ast_result_t sugar_entity(pass_opt_t* opt, ast_t* ast, bool add_create,
   token_id def_def_cap)
 {
@@ -216,6 +240,8 @@ static ast_result_t sugar_entity(pass_opt_t* opt, ast_t* ast, bool add_create,
 
           pony_assert(ast_id(n_body) == TK_SEQ);
 
+          sugar_docstring(member);
+
           ast_t* init = ast_child(init_seq);
 
           while(init != NULL)
@@ -256,29 +282,6 @@ static ast_result_t sugar_typeparam(ast_t* ast)
   return AST_OK;
 }
 
-
-static void sugar_docstring(ast_t* ast)
-{
-  pony_assert(ast != NULL);
-
-  AST_GET_CHILDREN(ast, cap, id, type_params, params, return_type,
-    error, body, docstring);
-
-  if(ast_id(docstring) == TK_NONE)
-  {
-    ast_t* first = ast_child(body);
-
-    // First expression in body is a docstring if it is a string literal and
-    // there are any other expressions in the body sequence
-    if((first != NULL) &&
-      (ast_id(first) == TK_STRING) &&
-      (ast_sibling(first) != NULL))
-    {
-      ast_pop(body);
-      ast_replace(&docstring, first);
-    }
-  }
-}
 
 
 static ast_result_t sugar_new(pass_opt_t* opt, ast_t* ast)
@@ -1062,6 +1065,21 @@ ast_t* expand_location(ast_t* location)
     }
   }
 
+  // Find name of containing type.
+  const char* type_name = "";
+  for(ast_t* typ = location; typ != NULL; typ = ast_parent(typ))
+  {
+    token_id variety = ast_id(typ);
+
+    if(variety == TK_INTERFACE || variety == TK_TRAIT ||
+      variety == TK_PRIMITIVE || variety == TK_STRUCT ||
+      variety == TK_CLASS || variety == TK_ACTOR)
+    {
+      type_name = ast_name(ast_child(typ));
+      break;
+    }
+  }
+
   // Create an object literal.
   BUILD(ast, location,
     NODE(TK_OBJECT, DATA("__loc")
@@ -1075,7 +1093,13 @@ ast_t* expand_location(ast_t* location)
           NODE(TK_SEQ, STRING(file_name))
           NONE)
         NODE(TK_FUN, AST_SCOPE
-          NODE(TK_TAG) ID("method") NONE NONE
+          NODE(TK_TAG) ID("type_name") NONE NONE
+          NODE(TK_NOMINAL, NONE ID("String") NONE NONE NONE)
+          NONE
+          NODE(TK_SEQ, STRING(type_name))
+          NONE)
+        NODE(TK_FUN, AST_SCOPE
+          NODE(TK_TAG) ID("method_name") NONE NONE
           NODE(TK_NOMINAL, NONE ID("String") NONE NONE NONE)
           NONE
           NODE(TK_SEQ, STRING(method_name))

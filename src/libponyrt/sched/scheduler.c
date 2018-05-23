@@ -212,18 +212,6 @@ static void handle_sched_block(scheduler_t* sched)
 // handle SCHED_UNBLOCK message
 static void handle_sched_unblock(scheduler_t* sched)
 {
-  // if the ASIO thread has already been stopped
-  if (sched->asio_stopped)
-  {
-    // restart the ASIO thread
-    ponyint_asio_init(asio_cpu);
-    sched->asio_stopped = !ponyint_asio_start();
-  }
-
-  // make sure asio hasn't already been stopped or else runtime is in
-  // an invalid state without the ASIO thread running
-  pony_assert(!sched->asio_stopped);
-
   // Cancel all acks and increment the ack token, so that any pending
   // acks in the queue will be dropped when they are received.
   sched->block_count--;
@@ -328,21 +316,26 @@ static bool quiescent(scheduler_t* sched, uint64_t tsc, uint64_t tsc2)
 
   if(sched->ack_count >= current_active_scheduler_count)
   {
-    if(sched->asio_stopped)
+    if(sched->asio_stoppable && ponyint_asio_stop())
     {
+      // successfully stopped ASIO thread
+      // tell all scheduler threads to terminate
       send_msg_all(sched->index, SCHED_TERMINATE, 0);
 
       wake_suspended_threads(sched->index);
 
       sched->ack_token++;
       sched->ack_count = 0;
-    } else if(ponyint_asio_stop()) {
-      sched->asio_stopped = true;
+    } else if(ponyint_asio_stoppable()) {
+      sched->asio_stoppable = true;
       sched->ack_token++;
       sched->ack_count = 0;
 
       // Run another CNF/ACK cycle.
       send_msg_all_active(sched->index, SCHED_CNF, sched->ack_token);
+    } else {
+      // ASIO is not stoppable
+      sched->asio_stoppable = false;
     }
   }
 
@@ -414,8 +407,10 @@ static pony_actor_t* suspend_scheduler(scheduler_t* sched,
     memory_order_relaxed);
 
   // make sure the scheduler count didn't change
-  pony_assert(sched_count == current_active_scheduler_count);
-  (void)current_active_scheduler_count;
+  // if it did, then another thread resumed and it may not be
+  // appropriate for us to suspend any longer, so don't suspend
+  if(sched_count != current_active_scheduler_count)
+    return actor;
 
   atomic_store_explicit(&active_scheduler_count, sched_count - 1,
     memory_order_relaxed);
@@ -1018,6 +1013,7 @@ PONY_API void pony_register_thread()
   this_scheduler = POOL_ALLOC(scheduler_t);
   memset(this_scheduler, 0, sizeof(scheduler_t));
   this_scheduler->tid = ponyint_thread_self();
+  this_scheduler->index = -1;
 }
 
 PONY_API void pony_unregister_thread()
@@ -1229,3 +1225,8 @@ bool ponyint_sched_unmute_senders(pony_ctx_t* ctx, pony_actor_t* actor)
   return actors_rescheduled > 0;
 }
 
+// Return the scheduler's index
+PONY_API int32_t pony_sched_index(pony_ctx_t* ctx)
+{
+  return ctx->scheduler->index;
+}

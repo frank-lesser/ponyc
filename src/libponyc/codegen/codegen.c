@@ -16,6 +16,9 @@
 #include "ponyassert.h"
 
 #include <platform.h>
+#if PONY_LLVM >= 600
+#include <llvm-c/DebugInfo.h>
+#endif
 #include <llvm-c/Initialization.h>
 #include <llvm-c/Linker.h>
 #include <llvm-c/Support.h>
@@ -85,16 +88,7 @@ static LLVMTargetMachineRef make_machine(pass_opt_t* opt, bool jit)
     return NULL;
   }
 
-  LLVMCodeGenOptLevel opt_level =
-    opt->release ? LLVMCodeGenLevelAggressive : LLVMCodeGenLevelNone;
-
-  LLVMRelocMode reloc =
-    (opt->pic || opt->library) ? LLVMRelocPIC : LLVMRelocDefault;
-
-  LLVMCodeModel model = jit ? LLVMCodeModelJITDefault : LLVMCodeModelDefault;
-
-  LLVMTargetMachineRef machine = LLVMCreateTargetMachine(target, opt->triple,
-    opt->cpu, opt->features, opt_level, reloc, model);
+  LLVMTargetMachineRef machine = codegen_machine(target, opt, jit);
 
   if(machine == NULL)
   {
@@ -681,10 +675,22 @@ static bool init_module(compile_t* c, ast_t* program, pass_opt_t* opt, bool jit)
   c->builder = LLVMCreateBuilderInContext(c->context);
   c->di = LLVMNewDIBuilder(c->module);
 
+#if PONY_LLVM < 600
   // TODO: what LANG id should be used?
   c->di_unit = LLVMDIBuilderCreateCompileUnit(c->di, 0x0004,
     package_filename(package), package_path(package), "ponyc-" PONY_VERSION,
     c->opt->release);
+#else
+  const char* filename = package_filename(package);
+  const char* dirname = package_path(package);
+  const char* version = "ponyc-" PONY_VERSION;
+  LLVMMetadataRef fileRef = LLVMDIBuilderCreateFile(c->di, filename,
+    strlen(filename), dirname, strlen(dirname));
+  c->di_unit = LLVMDIBuilderCreateCompileUnit(c->di,
+    LLVMDWARFSourceLanguageC_plus_plus, fileRef, version, strlen(version),
+    opt->release, "", 0, 0, "", 0, LLVMDWARFEmissionFull,
+    0, false, false);
+#endif
 
   // Empty frame stack.
   c->frame = NULL;
@@ -731,6 +737,14 @@ bool codegen_merge_runtime_bitcode(compile_t* c)
   return true;
 }
 
+#if PONY_LLVM == 600
+// TODO: remove for 6.0.1: https://reviews.llvm.org/D44140
+PONY_EXTERN_C_BEGIN
+extern void LLVMInitializeInstCombine_Pony(LLVMPassRegistryRef R);
+PONY_EXTERN_C_END
+#define LLVMInitializeInstCombine LLVMInitializeInstCombine_Pony
+#endif
+
 bool codegen_llvm_init()
 {
   LLVMLoadLibraryPermanently(NULL);
@@ -768,48 +782,53 @@ void codegen_llvm_shutdown()
 
 bool codegen_pass_init(pass_opt_t* opt)
 {
+  char *triple;
+
+  // Default triple, cpu and features.
+  if(opt->triple != NULL)
+  {
+    triple = LLVMCreateMessage(opt->triple);
+  } else {
+#ifdef PLATFORM_IS_MACOSX
+    // This is to prevent XCode 7+ from claiming OSX 14.5 is required.
+    triple = LLVMCreateMessage("x86_64-apple-macosx");
+#else
+    triple = LLVMGetDefaultTargetTriple();
+#endif
+  }
+
   if(opt->features != NULL)
   {
 #if PONY_LLVM < 500
-    // Disable -avx512f on LLVM < 5.0.0 to avoid bug https://bugs.llvm.org/show_bug.cgi?id=30542
-    size_t temp_len = strlen(opt->features) + 9;
-    char* temp_str = (char*)ponyint_pool_alloc_size(temp_len);
-    snprintf(temp_str, temp_len, "%s,-avx512f", opt->features);
+    if(target_is_x86(triple))
+    {
+      // Disable -avx512f on LLVM < 5.0.0 to avoid bug https://bugs.llvm.org/show_bug.cgi?id=30542
+      size_t temp_len = strlen(opt->features) + 10;
+      char* temp_str = (char*)ponyint_pool_alloc_size(temp_len);
+      snprintf(temp_str, temp_len, "%s,-avx512f", opt->features);
 
-    opt->features = temp_str;
-#endif
+      opt->features = LLVMCreateMessage(temp_str);
 
+      ponyint_pool_free_size(temp_len, temp_str);
+    } else {
+      opt->features = LLVMCreateMessage(opt->features);
+    }
+#else
     opt->features = LLVMCreateMessage(opt->features);
-
-
-#if PONY_LLVM < 500
-    // free memory for temp_str
-    ponyint_pool_free_size(temp_len, temp_str);
 #endif
   } else {
     if((opt->cpu == NULL) && (opt->triple == NULL))
       opt->features = LLVMGetHostCPUFeatures();
     else
 #if PONY_LLVM < 500
-      opt->features = LLVMCreateMessage("-avx512f");
+      opt->features = LLVMCreateMessage(target_is_x86(triple) ? "-avx512f" : "");
 #else
       opt->features = LLVMCreateMessage("");
 #endif
   }
 
-  // Default triple, cpu and features.
-  if(opt->triple != NULL)
-  {
-    opt->triple = LLVMCreateMessage(opt->triple);
-  } else {
-#ifdef PLATFORM_IS_MACOSX
-    // This is to prevent XCode 7+ from claiming OSX 14.5 is required.
-    opt->triple = LLVMCreateMessage("x86_64-apple-macosx");
-#else
-    opt->triple = LLVMGetDefaultTargetTriple();
-#endif
-  }
-
+  opt->triple = triple;
+  
   if(opt->cpu != NULL)
     opt->cpu = LLVMCreateMessage(opt->cpu);
   else
@@ -898,7 +917,6 @@ bool codegen_gen_test(compile_t* c, ast_t* program, pass_opt_t* opt,
 
     reach(c->reach, main_ast, c->str_create, NULL, opt);
     reach(c->reach, env_ast, c->str__create, NULL, opt);
-    reach_done(c->reach, c->opt);
 
     ast_free(main_ast);
     ast_free(env_ast);

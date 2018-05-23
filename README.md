@@ -174,7 +174,7 @@ export CC=`which gcc`
 Install ponyc via bintray:
 
 ```bash
-sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "D401AB61 DBE1D0A2"
+sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys "379CE192D401AB61"
 echo "deb https://dl.bintray.com/pony-language/ponyc-debian pony-language main" | sudo tee -a /etc/apt/sources.list
 sudo apt-get update
 sudo apt-get -V install ponyc
@@ -229,7 +229,7 @@ Windows users will need to install:
 
 - Visual Studio 2017 or 2015 (available [here](https://www.visualstudio.com/vs/community/)) or the Visual C++ Build Tools 2017 or 2015 (available [here](http://landinghub.visualstudio.com/visual-cpp-build-tools)), and
   - If using Visual Studio 2015, install the Windows 10 SDK (available [here](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)).
-  - If using Visual Studio 2017, install the `Windows 10 SDK (10.0.15063.0) for Desktop` from the Visual Studio installer.
+  - If using Visual Studio 2017 or the Visual C++ Build Tools 2017, install the latest `Windows 10 SDK (10.x.x.x) for Desktop` from the Visual Studio installer.
 
 Once you have installed the prerequisites, you can download the latest ponyc release from [bintray](https://dl.bintray.com/pony-language/ponyc-win/).
 
@@ -466,7 +466,65 @@ make
 ./helloworld
 ```
 
-### OpenSUSE (Leap 24.3)
+### CentOS/RHEL (7)
+
+Instal dependencies:
+
+```bash
+sudo yum install git gcc-c++ make openssl-devel pcre2-devel zlib-devel \
+  ncurses-devel libatomic
+```
+
+Using LLVM 3.9.1 from copr:
+
+```bash
+sudo yum install yum-plugin-copr
+sudo yum copr enable alonid/llvm-3.9.1
+sudo yum install llvm-3.9.1 llvm-3.9.1-devel llvm-3.9.1-static
+```
+
+Using LLVM 5.0.1 from copr:
+
+```bash
+sudo yum install yum-plugin-copr
+sudo yum copr enable alonid/llvm-5.0.1
+sudo yum install llvm-5.0.1 llvm-5.0.1-devel llvm-5.0.1-static
+```
+
+Using LLVM 4.0.1 from llvm-toolset-7 from SCL:
+
+CentOS:
+```bash
+# 1. Install a package with repository for your system:
+# On CentOS, install package centos-release-scl available in CentOS repository:
+sudo yum install centos-release-scl
+```
+
+RHEL:
+```bash
+# On RHEL, enable RHSCL repository for you system:
+sudo yum-config-manager --enable rhel-server-rhscl-7-rpms
+
+```bash
+# 2. Install the collection:
+sudo yum install llvm-toolset-7 llvm-toolset-7-llvm-devel llvm-toolset-7-llvm-static
+```
+
+Enable the llvm collection before building:
+```bash
+scl enable llvm-toolset-7 bash
+```
+
+To build ponyc, compile and run helloworld:
+
+```bash
+cd ~/ponyc/
+make use="llvm_link_static"
+./build/release/ponyc examples/helloworld
+./helloworld
+```
+
+### OpenSUSE (Leap 42.3)
 
 ```bash
 sudo zypper addrepo http://download.opensuse.org/repositories/devel:tools:compiler/openSUSE_Leap_42.3/devel:tools:compiler.repo
@@ -485,13 +543,13 @@ make
 ./helloworld
 ```
 
-### Alpine (Edge)
+### Alpine (3.6, 3.7, Edge)
 
 Install build tools/dependencies:
 
 ```bash
 apk add --update alpine-sdk libressl-dev binutils-gold llvm3.9 llvm3.9-dev \
-  pcre2-dev libunwind-dev coreutils
+  pcre2-dev libexecinfo-dev coreutils linux-headers
 ```
 
 To build ponyc, compile and run helloworld:
@@ -615,7 +673,7 @@ Building on Windows requires the following:
 
 - Visual Studio 2017 or 2015 (available [here](https://www.visualstudio.com/vs/community/)) or the Visual C++ Build Tools 2017 or 2015 (available [here](http://landinghub.visualstudio.com/visual-cpp-build-tools)), and
   - If using Visual Studio 2015, install the Windows 10 SDK (available [here](https://developer.microsoft.com/en-us/windows/downloads/windows-10-sdk)).
-  - If using Visual Studio 2017, install the `Windows 10 SDK (10.0.15063.0) for Desktop` from the Visual Studio installer.
+  - If using Visual Studio 2017 or the Visual C++ Build Tools 2017, install the latest `Windows 10 SDK (10.x.x.x) for Desktop` from the Visual Studio installer.
 - [Python](https://www.python.org/downloads) (3.6 or 2.7) needs to be in your PATH.
 
 In a command prompt in the `ponyc` source directory, run the following:
@@ -624,7 +682,7 @@ In a command prompt in the `ponyc` source directory, run the following:
 make.bat configure
 ```
 
-(You only need to run this the first time you build the project.)
+(You only need to run `make.bat configure` the first time you build the project.)
 
 ```
 make.bat build test
@@ -636,7 +694,7 @@ This will automatically perform the following steps:
   - [LLVM](http://llvm.org)
   - [LibreSSL](https://www.libressl.org/)
   - [PCRE](http://www.pcre.org)
-- Build the pony compiler in the `build-<config>-<llvm-version>` directory.
+- Build the pony compiler in the `build/<config>-<llvm-version>` directory.
 - Build the unit tests for the compiler and the standard library.
 - Run the unit tests.
 
@@ -710,5 +768,3 @@ gcc -march=none
 ```
 
 This will result in an error message plus a listing off all architecture types acceptable on your platform.
-
-

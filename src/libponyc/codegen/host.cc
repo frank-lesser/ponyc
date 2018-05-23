@@ -18,6 +18,8 @@
 #include <llvm/IRReader/IRReader.h>
 #include <llvm/Linker/Linker.h>
 #include <llvm/Support/SourceMgr.h>
+#include <llvm/Support/TargetRegistry.h>
+#include <llvm/Target/TargetOptions.h>
 
 #ifdef _MSC_VER
 #  pragma warning(pop)
@@ -28,6 +30,34 @@
 #include "ponyassert.h"
 
 using namespace llvm;
+
+LLVMTargetMachineRef codegen_machine(LLVMTargetRef target, pass_opt_t* opt,
+  bool jit)
+{
+  Optional<Reloc::Model> reloc;
+
+  if(opt->pic || opt->library)
+    reloc = Reloc::PIC_;
+
+  CodeGenOpt::Level opt_level =
+    opt->release ? CodeGenOpt::Aggressive : CodeGenOpt::None;
+
+  TargetOptions options;
+  options.TrapUnreachable = true;
+
+  Target* t = reinterpret_cast<Target*>(target);
+
+#if PONY_LLVM < 600
+  CodeModel::Model model = jit ? CodeModel::JITDefault : CodeModel::Default;
+  TargetMachine* m = t->createTargetMachine(opt->triple, opt->cpu,
+    opt->features, options, reloc, model, opt_level);
+#else
+TargetMachine* m = t->createTargetMachine(opt->triple, opt->cpu,
+  opt->features, options, reloc, llvm::None, opt_level, jit);
+#endif
+
+  return reinterpret_cast<LLVMTargetMachineRef>(m);
+}
 
 char* LLVMGetHostCPUName()
 {
@@ -46,7 +76,7 @@ char* LLVMGetHostCPUFeatures()
   for(auto it = features.begin(); it != features.end(); it++)
     buf_size += (*it).getKey().str().length() + 2; // plus +/- char and ,/null
 
-#if PONY_LLVM < 500
+#if PONY_LLVM < 500 and defined(PLATFORM_IS_X86)
   // Add extra buffer space for llvm bug workaround
   buf_size += 9;
 #endif
@@ -69,7 +99,7 @@ char* LLVMGetHostCPUFeatures()
       strcat(buf, ",");
   }
 
-#if PONY_LLVM < 500
+#if PONY_LLVM < 500 and defined(PLATFORM_IS_X86)
   // Disable -avx512f on LLVM < 5.0.0 to avoid bug https://bugs.llvm.org/show_bug.cgi?id=30542
   strcat(buf, ",-avx512f");
 #endif
@@ -79,7 +109,11 @@ char* LLVMGetHostCPUFeatures()
 
 void LLVMSetUnsafeAlgebra(LLVMValueRef inst)
 {
+#if PONY_LLVM < 600
   unwrap<Instruction>(inst)->setHasUnsafeAlgebra(true);
+#else // See https://reviews.llvm.org/D39304 for this change
+  unwrap<Instruction>(inst)->setHasAllowReassoc(true);
+#endif
 }
 
 void LLVMSetNoUnsignedWrap(LLVMValueRef inst)
