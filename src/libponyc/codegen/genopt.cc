@@ -1,18 +1,7 @@
-#ifdef _MSC_VER
-#  pragma warning(push)
-// because LLVM IR Builder code is broken: e.g. Instructions.h:521-527
-#  pragma warning(disable:4244)
-#  pragma warning(disable:4800)
-#  pragma warning(disable:4267)
-#  pragma warning(disable:4624)
-#  pragma warning(disable:4141)
-#  pragma warning(disable:4146)
-// LLVM claims DEBUG as a macro name. Conflicts with MSVC headers.
-#  pragma warning(disable:4005)
-#endif
-
 #include "genopt.h"
 #include <string.h>
+
+#include "llvm_config_begin.h"
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/CallSite.h>
@@ -36,12 +25,10 @@
 #include <llvm-c/DebugInfo.h>
 #endif
 
+#include "llvm_config_end.h"
+
 #include "../../libponyrt/mem/heap.h"
 #include "ponyassert.h"
-
-#ifdef _MSC_VER
-#  pragma warning(pop)
-#endif
 
 using namespace llvm;
 using namespace llvm::legacy;
@@ -1479,7 +1466,7 @@ bool target_is_bsd(char* t)
 {
   Triple triple = Triple(t);
 
-  return triple.isOSDragonFly() || triple.isOSFreeBSD();
+  return triple.isOSDragonFly() || triple.isOSFreeBSD() || triple.isOSOpenBSD();
 }
 
 bool target_is_freebsd(char* t)
@@ -1494,6 +1481,13 @@ bool target_is_dragonfly(char* t)
   Triple triple = Triple(t);
 
   return triple.isOSDragonFly();
+}
+
+bool target_is_openbsd(char* t)
+{
+  Triple triple = Triple(t);
+
+  return triple.isOSOpenBSD();
 }
 
 bool target_is_macosx(char* t)
@@ -1515,7 +1509,7 @@ bool target_is_posix(char* t)
   Triple triple = Triple(t);
 
   return triple.isMacOSX() || triple.isOSFreeBSD() || triple.isOSLinux()
-    || triple.isOSDragonFly();
+    || triple.isOSDragonFly() || triple.isOSOpenBSD();
 }
 
 bool target_is_x86(char* t)
@@ -1541,7 +1535,7 @@ bool target_is_arm(char* t)
   const char* arch = Triple::getArchTypePrefix(triple.getArch());
 #endif
 
-  return !strcmp("arm", arch);
+  return (!strcmp("arm", arch) || !strcmp("aarch64", arch));
 }
 
 // This function is used to safeguard against potential oversights on the size

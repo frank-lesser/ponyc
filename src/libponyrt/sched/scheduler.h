@@ -46,6 +46,7 @@ typedef struct pony_ctx_t
   ponyint_serialise_t serialise;
   serialise_alloc_fn serialise_alloc;
   serialise_alloc_fn serialise_alloc_final;
+  serialise_throw_fn serialise_throw;
 } pony_ctx_t;
 
 struct scheduler_t
@@ -75,7 +76,7 @@ struct scheduler_t
 };
 
 pony_ctx_t* ponyint_sched_init(uint32_t threads, bool noyield, bool nopin,
-  bool pinasio, uint32_t min_threads);
+  bool pinasio, uint32_t min_threads, uint32_t thread_suspend_threshold);
 
 bool ponyint_sched_start(bool library);
 

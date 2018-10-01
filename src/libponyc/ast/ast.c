@@ -58,7 +58,7 @@ enum
   AST_ORPHAN = 0x20,
   AST_INHERIT_FLAGS = (AST_FLAG_CAN_ERROR | AST_FLAG_CAN_SEND |
     AST_FLAG_MIGHT_SEND | AST_FLAG_RECURSE_1 | AST_FLAG_RECURSE_2),
-  AST_ALL_FLAGS = 0x7FFFFF
+  AST_ALL_FLAGS = 0xFFFFFF
 };
 
 
@@ -957,6 +957,12 @@ ast_t* ast_try_clause(ast_t* ast, size_t* clause)
         *clause = ast_index(last);
         return ast;
       }
+      case TK_NEW:
+      case TK_FUN:
+      case TK_BE:
+        // try clauses outside of the current constructor, function, behaviour
+        // are not considered
+        return NULL;
 
       default: {}
     }

@@ -68,7 +68,7 @@ actor Stdin
         512)
   ```
 
-  **Note:** For reading user input from a terminal, use the [readline](readline--index) package.
+  **Note:** For reading user input from a terminal, use the [term](term--index) package.
   """
   var _notify: (InputNotify | None) = None
   var _chunk_size: USize = 32
@@ -157,7 +157,7 @@ actor Stdin
         var again: Bool = false
 
         let len =
-          @pony_os_stdin_read[USize](data.cpointer(), data.space(),
+          @pony_os_stdin_read[USize](data.cpointer(), data.size(),
             addressof again)
 
         match len

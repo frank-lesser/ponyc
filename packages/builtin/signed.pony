@@ -6,6 +6,7 @@ primitive I8 is _SignedInteger[I8, U8]
   new max_value() => 0x7F
 
   fun abs(): U8 => if this < 0 then (-this).u8() else this.u8() end
+  fun bit_reverse(): I8 => @"llvm.bitreverse.i8"[I8](this)
   fun bswap(): I8 => this
   fun popcount(): U8 => @"llvm.ctpop.i8"[U8](this)
   fun clz(): U8 => @"llvm.ctlz.i8"[U8](this, false)
@@ -39,6 +40,30 @@ primitive I8 is _SignedInteger[I8, U8]
   fun mulc(y: I8): (I8, Bool) =>
     @"llvm.smul.with.overflow.i8"[(I8, Bool)](this, y)
 
+  fun divc(y: I8): (I8, Bool) =>
+    _SignedPartialArithmetic.div_checked[I8, U8](this, y)
+
+  fun modc(y: I8): (I8, Bool) =>
+    _SignedPartialArithmetic.mod_checked[I8, U8](this, y)
+
+  fun add_partial(y: I8): I8 ? =>
+    _SignedPartialArithmetic.add_partial[I8](this, y)?
+
+  fun sub_partial(y: I8): I8 ? =>
+    _SignedPartialArithmetic.sub_partial[I8](this, y)?
+
+  fun mul_partial(y: I8): I8 ? =>
+    _SignedPartialArithmetic.mul_partial[I8](this, y)?
+
+  fun div_partial(y: I8): I8 ? =>
+    _SignedPartialArithmetic.div_partial[I8, U8](this, y)?
+
+  fun mod_partial(y: I8): I8 ? =>
+    _SignedPartialArithmetic.mod_partial[I8, U8](this, y)?
+
+  fun divmod_partial(y: I8): (I8, I8) ? =>
+    _SignedPartialArithmetic.divmod_partial[I8, U8](this, y)?
+
 primitive I16 is _SignedInteger[I16, U16]
   new create(value: I16) => value
   new from[A: (Number & Real[A] val)](a: A) => a.i16()
@@ -47,6 +72,7 @@ primitive I16 is _SignedInteger[I16, U16]
   new max_value() => 0x7FFF
 
   fun abs(): U16 => if this < 0 then (-this).u16() else this.u16() end
+  fun bit_reverse(): I16 => @"llvm.bitreverse.i16"[I16](this)
   fun bswap(): I16 => @"llvm.bswap.i16"[I16](this)
   fun popcount(): U16 => @"llvm.ctpop.i16"[U16](this)
   fun clz(): U16 => @"llvm.ctlz.i16"[U16](this, false)
@@ -80,6 +106,31 @@ primitive I16 is _SignedInteger[I16, U16]
   fun mulc(y: I16): (I16, Bool) =>
     @"llvm.smul.with.overflow.i16"[(I16, Bool)](this, y)
 
+  fun divc(y: I16): (I16, Bool) =>
+    _SignedPartialArithmetic.div_checked[I16, U16](this, y)
+
+  fun modc(y: I16): (I16, Bool) =>
+    _SignedPartialArithmetic.mod_checked[I16, U16](this, y)
+
+  fun add_partial(y: I16): I16 ? =>
+    _SignedPartialArithmetic.add_partial[I16](this, y)?
+
+  fun sub_partial(y: I16): I16 ? =>
+    _SignedPartialArithmetic.sub_partial[I16](this, y)?
+
+  fun mul_partial(y: I16): I16 ? =>
+    _SignedPartialArithmetic.mul_partial[I16](this, y)?
+
+  fun div_partial(y: I16): I16 ? =>
+    _SignedPartialArithmetic.div_partial[I16, U16](this, y)?
+
+  fun mod_partial(y: I16): I16 ? =>
+    _SignedPartialArithmetic.mod_partial[I16, U16](this, y)?
+
+  fun divmod_partial(y: I16): (I16, I16) ? =>
+    _SignedPartialArithmetic.divmod_partial[I16, U16](this, y)?
+
+
 primitive I32 is _SignedInteger[I32, U32]
   new create(value: I32) => value
   new from[A: (Number & Real[A] val)](a: A) => a.i32()
@@ -88,6 +139,7 @@ primitive I32 is _SignedInteger[I32, U32]
   new max_value() => 0x7FFF_FFFF
 
   fun abs(): U32 => if this < 0 then (-this).u32() else this.u32() end
+  fun bit_reverse(): I32 => @"llvm.bitreverse.i32"[I32](this)
   fun bswap(): I32 => @"llvm.bswap.i32"[I32](this)
   fun popcount(): U32 => @"llvm.ctpop.i32"[U32](this)
   fun clz(): U32 => @"llvm.ctlz.i32"[U32](this, false)
@@ -121,6 +173,30 @@ primitive I32 is _SignedInteger[I32, U32]
   fun mulc(y: I32): (I32, Bool) =>
     @"llvm.smul.with.overflow.i32"[(I32, Bool)](this, y)
 
+  fun divc(y: I32): (I32, Bool) =>
+    _SignedPartialArithmetic.div_checked[I32, U32](this, y)
+
+  fun modc(y: I32): (I32, Bool) =>
+    _SignedPartialArithmetic.mod_checked[I32, U32](this, y)
+
+  fun add_partial(y: I32): I32 ? =>
+    _SignedPartialArithmetic.add_partial[I32](this, y)?
+
+  fun sub_partial(y: I32): I32 ? =>
+    _SignedPartialArithmetic.sub_partial[I32](this, y)?
+
+  fun mul_partial(y: I32): I32 ? =>
+    _SignedPartialArithmetic.mul_partial[I32](this, y)?
+
+  fun div_partial(y: I32): I32 ? =>
+    _SignedPartialArithmetic.div_partial[I32, U32](this, y)?
+
+  fun mod_partial(y: I32): I32 ? =>
+    _SignedPartialArithmetic.mod_partial[I32, U32](this, y)?
+
+  fun divmod_partial(y: I32): (I32, I32) ? =>
+    _SignedPartialArithmetic.divmod_partial[I32, U32](this, y)?
+
 primitive I64 is _SignedInteger[I64, U64]
   new create(value: I64) => value
   new from[A: (Number & Real[A] val)](a: A) => a.i64()
@@ -129,6 +205,7 @@ primitive I64 is _SignedInteger[I64, U64]
   new max_value() => 0x7FFF_FFFF_FFFF_FFFF
 
   fun abs(): U64 => if this < 0 then (-this).u64() else this.u64() end
+  fun bit_reverse(): I64 => @"llvm.bitreverse.i64"[I64](this)
   fun bswap(): I64 => @"llvm.bswap.i64"[I64](this)
   fun popcount(): U64 => @"llvm.ctpop.i64"[U64](this)
   fun clz(): U64 => @"llvm.ctlz.i64"[U64](this, false)
@@ -163,6 +240,29 @@ primitive I64 is _SignedInteger[I64, U64]
   fun mulc(y: I64): (I64, Bool) =>
     _SignedCheckedArithmetic._mulc[U64, I64](this, y)
 
+  fun divc(y: I64): (I64, Bool) =>
+    _SignedPartialArithmetic.div_checked[I64, U64](this, y)
+
+  fun modc(y: I64): (I64, Bool) =>
+    _SignedPartialArithmetic.mod_checked[I64, U64](this, y)
+
+  fun add_partial(y: I64): I64 ? =>
+    _SignedPartialArithmetic.add_partial[I64](this, y)?
+
+  fun sub_partial(y: I64): I64 ? =>
+    _SignedPartialArithmetic.sub_partial[I64](this, y)?
+
+  fun mul_partial(y: I64): I64 ? =>
+    _SignedPartialArithmetic.mul_partial[I64](this, y)?
+
+  fun div_partial(y: I64): I64 ? =>
+    _SignedPartialArithmetic.div_partial[I64, U64](this, y)?
+
+  fun mod_partial(y: I64): I64 ? =>
+    _SignedPartialArithmetic.mod_partial[I64, U64](this, y)?
+
+  fun divmod_partial(y: I64): (I64, I64) ? =>
+    _SignedPartialArithmetic.divmod_partial[I64, U64](this, y)?
 
 primitive ILong is _SignedInteger[ILong, ULong]
   new create(value: ILong) => value
@@ -183,6 +283,13 @@ primitive ILong is _SignedInteger[ILong, ULong]
     end
 
   fun abs(): ULong => if this < 0 then (-this).ulong() else this.ulong() end
+
+  fun bit_reverse(): ILong =>
+    ifdef ilp32 or llp64 then
+      @"llvm.bitreverse.i32"[ILong](this)
+    else
+      @"llvm.bitreverse.i64"[ILong](this)
+    end
 
   fun bswap(): ILong =>
     ifdef ilp32 or llp64 then
@@ -252,6 +359,30 @@ primitive ILong is _SignedInteger[ILong, ULong]
       _SignedCheckedArithmetic._mulc[ULong, ILong](this, y)
     end
 
+  fun divc(y: ILong): (ILong, Bool) =>
+    _SignedPartialArithmetic.div_checked[ILong, ULong](this, y)
+
+  fun modc(y: ILong): (ILong, Bool) =>
+    _SignedPartialArithmetic.mod_checked[ILong, ULong](this, y)
+
+  fun add_partial(y: ILong): ILong ? =>
+    _SignedPartialArithmetic.add_partial[ILong](this, y)?
+
+  fun sub_partial(y: ILong): ILong ? =>
+    _SignedPartialArithmetic.sub_partial[ILong](this, y)?
+
+  fun mul_partial(y: ILong): ILong ? =>
+    _SignedPartialArithmetic.mul_partial[ILong](this, y)?
+
+  fun div_partial(y: ILong): ILong ? =>
+    _SignedPartialArithmetic.div_partial[ILong, ULong](this, y)?
+
+  fun mod_partial(y: ILong): ILong ? =>
+    _SignedPartialArithmetic.mod_partial[ILong, ULong](this, y)?
+
+  fun divmod_partial(y: ILong): (ILong, ILong) ? =>
+    _SignedPartialArithmetic.divmod_partial[ILong, ULong](this, y)?
+
 primitive ISize is _SignedInteger[ISize, USize]
   new create(value: ISize) => value
   new from[A: (Number & Real[A] val)](a: A) => a.isize()
@@ -271,6 +402,13 @@ primitive ISize is _SignedInteger[ISize, USize]
     end
 
   fun abs(): USize => if this < 0 then (-this).usize() else this.usize() end
+
+  fun bit_reverse(): ISize =>
+    ifdef ilp32 then
+      @"llvm.bitreverse.i32"[ISize](this)
+    else
+      @"llvm.bitreverse.i64"[ISize](this)
+    end
 
   fun bswap(): ISize =>
     ifdef ilp32 then
@@ -339,6 +477,30 @@ primitive ISize is _SignedInteger[ISize, USize]
       _SignedCheckedArithmetic._mulc[USize, ISize](this, y)
     end
 
+  fun divc(y: ISize): (ISize, Bool) =>
+    _SignedPartialArithmetic.div_checked[ISize, USize](this, y)
+
+  fun modc(y: ISize): (ISize, Bool) =>
+    _SignedPartialArithmetic.mod_checked[ISize, USize](this, y)
+
+  fun add_partial(y: ISize): ISize ? =>
+    _SignedPartialArithmetic.add_partial[ISize](this, y)?
+
+  fun sub_partial(y: ISize): ISize ? =>
+    _SignedPartialArithmetic.sub_partial[ISize](this, y)?
+
+  fun mul_partial(y: ISize): ISize ? =>
+    _SignedPartialArithmetic.mul_partial[ISize](this, y)?
+
+  fun div_partial(y: ISize): ISize ? =>
+    _SignedPartialArithmetic.div_partial[ISize, USize](this, y)?
+
+  fun mod_partial(y: ISize): ISize ? =>
+    _SignedPartialArithmetic.mod_partial[ISize, USize](this, y)?
+
+  fun divmod_partial(y: ISize): (ISize, ISize) ? =>
+    _SignedPartialArithmetic.divmod_partial[ISize, USize](this, y)?
+
 primitive I128 is _SignedInteger[I128, U128]
   new create(value: I128) => value
   new from[A: (Number & Real[A] val)](a: A) => a.i128()
@@ -347,6 +509,7 @@ primitive I128 is _SignedInteger[I128, U128]
   new max_value() => 0x7FFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF_FFFF
 
   fun abs(): U128 => if this < 0 then (-this).u128() else this.u128() end
+  fun bit_reverse(): I128 => @"llvm.bitreverse.i128"[I128](this)
   fun bswap(): I128 => @"llvm.bswap.i128"[I128](this)
   fun popcount(): U128 => @"llvm.ctpop.i128"[U128](this)
   fun clz(): U128 => @"llvm.ctlz.i128"[U128](this, false)
@@ -527,6 +690,30 @@ primitive I128 is _SignedInteger[I128, U128]
     // the following implementation is more or less exactly was __muloti4 is
     // doing
     _SignedCheckedArithmetic._mulc[U128, I128](this, y)
+
+  fun divc(y: I128): (I128, Bool) =>
+    _SignedPartialArithmetic.div_checked[I128, U128](this, y)
+
+  fun modc(y: I128): (I128, Bool) =>
+    _SignedPartialArithmetic.mod_checked[I128, U128](this, y)
+
+  fun add_partial(y: I128): I128 ? =>
+    _SignedPartialArithmetic.add_partial[I128](this, y)?
+
+  fun sub_partial(y: I128): I128 ? =>
+    _SignedPartialArithmetic.sub_partial[I128](this, y)?
+
+  fun mul_partial(y: I128): I128 ? =>
+    _SignedPartialArithmetic.mul_partial[I128](this, y)?
+
+  fun div_partial(y: I128): I128 ? =>
+    _SignedPartialArithmetic.div_partial[I128, U128](this, y)?
+
+  fun mod_partial(y: I128): I128 ? =>
+    _SignedPartialArithmetic.mod_partial[I128, U128](this, y)?
+
+  fun divmod_partial(y: I128): (I128, I128) ? =>
+    _SignedPartialArithmetic.divmod_partial[I128, U128](this, y)?
 
 type Signed is (I8 | I16 | I32 | I64 | I128 | ILong | ISize)
 

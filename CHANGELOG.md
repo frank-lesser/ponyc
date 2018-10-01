@@ -6,6 +6,140 @@ All notable changes to the Pony compiler and standard library will be documented
 
 ### Fixed
 
+- Fix compilation warning on windows. ([PR #2877](https://github.com/ponylang/ponyc/pull/2877))
+- Fix building on Windows in a directory with spaces in its name ([PR #2879](https://github.com/ponylang/ponyc/pull/2879))
+- Fix losing data when reading from STDIN. ([PR #2872](https://github.com/ponylang/ponyc/pull/2872))
+- Fix validation of provides lists of object literals. ([PR #2860](https://github.com/ponylang/ponyc/pull/2860))
+- Fix `files/Path.clean()` not correctly handling multiple `..` ([PR #2862](https://github.com/ponylang/ponyc/pull/2862))
+- Fix skipped try-then clauses on return, break and continue statements ([PR #2853](https://github.com/ponylang/ponyc/pull/2853))
+- Fix performance and memory consumption issues with `files.FileLines` ([PR #2707](https://github.com/ponylang/ponyc/pull/2707))
+
+### Added
+
+- Add modc method to integer types ([PR #2883](https://github.com/ponylang/ponyc/pull/2883))
+- Add divc method to integer types ([PR #2882](https://github.com/ponylang/ponyc/pull/2882))
+- [RFC 58] Add partial arithmetic for integer types ([PR #2865](https://github.com/ponylang/ponyc/pull/2865))
+- Added OpenBSD support. ([PR #2823](https://github.com/ponylang/ponyc/pull/2823))
+- Added `set_up` method to `ponytest.UnitTest` as equivalent to existing `tear_down` method ([PR #2707](https://github.com/ponylang/ponyc/pull/2707))
+- Added `keep_line_breaks` argument to function `buffered.Reader.line` ([PR #2707](https://github.com/ponylang/ponyc/pull/2707))
+
+### Changed
+
+-  Use RLIMIT_STACK's current limit for Pthreads stack size if it is sane ([PR #2852](https://github.com/ponylang/ponyc/pull/2852))
+- Remove `File.line` method in favor of using `FileLines` ([PR #2707](https://github.com/ponylang/ponyc/pull/2707))
+
+## [0.24.4] - 2018-07-29
+
+### Fixed
+
+- Fix array and string trim_in_place allocation bounds check ([PR #2840](https://github.com/ponylang/ponyc/pull/2840))
+
+## [0.24.3] - 2018-07-24
+
+### Added
+
+- Nothing - this was purely to fix a problem in the previously release
+
+## [0.24.2] - 2018-07-24
+
+### Fixed
+
+- Fix `make arch=XXXXX` command to be able to correctly find libponyrt.
+
+## [0.24.1] - 2018-07-22
+
+### Fixed
+
+- Add libexecinfo to debug builds for BSD ([PR #2826](https://github.com/ponylang/ponyc/pull/2826))
+
+### Added
+
+- Add SSL APLN support ([PR #2816](https://github.com/ponylang/ponyc/pull/2816))
+- Make dynamic scheduler scaling more robust and configurable ([PR #2801](https://github.com/ponylang/ponyc/pull/2801))
+
+## [0.24.0] - 2018-06-29
+
+### Fixed
+
+- Always use "binary" mode when opening files on Windows. ([PR #2811](https://github.com/ponylang/ponyc/pull/2811))
+- Do not set File._errno when reading less than requested bytes. ([PR #2785](https://github.com/ponylang/ponyc/pull/2785))
+- Correctly allocate memory for linker arguments ([PR #2797](https://github.com/ponylang/ponyc/pull/2797))
+- Fix build on DragonFly BSD ([PR #2794](https://github.com/ponylang/ponyc/pull/2794))
+- Fix some edge cases in code generation for loops that jump away. ([PR #2791](https://github.com/ponylang/ponyc/pull/2791))
+- Fix repeat loop symbol tracking to allow more valid cases. ([PR #2786](https://github.com/ponylang/ponyc/pull/2786))
+-  Fix incorrect disposable/destroyed epoll resubscribe handling ([PR #2781](https://github.com/ponylang/ponyc/pull/2781))
+- Fix GC-safety issue with writev pointers in File. ([PR #2775](https://github.com/ponylang/ponyc/pull/2775))
+- Disable neon for armhf if not supported by C/C++ compiler ([PR #2672](https://github.com/ponylang/ponyc/pull/2672))
+
+### Changed
+
+- Run cycle detector every N ms based on timer ([PR #2709](https://github.com/ponylang/ponyc/pull/2709))
+- [RFC 55] Remove package net/http from stdlib ([PR #2795](https://github.com/ponylang/ponyc/pull/2795))
+- Change refcap of JsonDoc to ref for better usability ([PR #2747](https://github.com/ponylang/ponyc/pull/2747))
+- Change NetAddress class to hide its fields behind functions, fixing cross-platform compatibility. ([PR #2734](https://github.com/ponylang/ponyc/pull/2734))
+
+## [0.23.0] - 2018-06-10
+
+### Fixed
+
+- Fix File.writev and File.flush in cases where the IO vector exceeds IOV_MAX. ([PR #2771](https://github.com/ponylang/ponyc/pull/2771))
+- Fix incorrect tuple handling ([PR #2763](https://github.com/ponylang/ponyc/pull/2763))
+- Fix Promise bug where join() element's reject doesn't reject the entire join ([PR #2770](https://github.com/ponylang/ponyc/pull/2770))
+
+### Added
+
+- Add Integer.bit_reverse, exposing the llvm.bitreverse intrinsic. ([PR #2710](https://github.com/ponylang/ponyc/pull/2710))
+
+### Changed
+
+- RFC 56: Make buffered.reader.line return String iso^ ([PR #2756](https://github.com/ponylang/ponyc/pull/2756))
+
+## [0.22.6] - 2018-06-07
+
+### Fixed
+
+- Fix compiler segfault caused by dead code removal of tupled variables ([PR #2757](https://github.com/ponylang/ponyc/pull/2757))
+- Fix `collections/persistent/Lists.from()` to return elements in the correct order ([PR #2754](https://github.com/ponylang/ponyc/pull/2754))
+- Fix performance related to dynamic scheduler scaling ([PR #2751](https://github.com/ponylang/ponyc/pull/2751))
+- Fix incorrect disposable/destroyed epoll resubscribe handling ([PR #2744](https://github.com/ponylang/ponyc/pull/2744))
+- Fix performance regression in serialization performance ([PR #2752](https://github.com/ponylang/ponyc/pull/2752))
+
+## [0.22.5] - 2018-06-05
+
+### Fixed
+
+- Fix memory overflow when allocating CPUs when numa is enabled ([PR #2745](https://github.com/ponylang/ponyc/pull/2745))
+
+## [0.22.4] - 2018-06-04
+
+### Fixed
+
+- Fix compiler crash related to union types with duplicate members. ([PR #2738](https://github.com/ponylang/ponyc/pull/2738))
+- Fix CommandSpec without args and help ([PR #2721](https://github.com/ponylang/ponyc/pull/2721))
+
+## [0.22.3] - 2018-05-31
+
+### Fixed
+
+- Only enable mcx16 for gcc for x86_64 targets ([PR #2725](https://github.com/ponylang/ponyc/pull/2725))
+- Fix String.concat ignoring the len parameter ([PR #2723](https://github.com/ponylang/ponyc/pull/2723))
+
+## [0.22.2] - 2018-05-26
+
+### Fixed
+
+- Relax ProcessMonitor checks for execute bits ([PR #2717](https://github.com/ponylang/ponyc/pull/2717))
+
+## [0.22.1] - 2018-05-25
+
+### Fixed
+
+- Broken docker image creation
+
+## [0.22.0] - 2018-05-24
+
+### Fixed
+
 - Incorrect rstrip handling of multibyte characters ([PR #2706](https://github.com/ponylang/ponyc/pull/2706))
 - Fix File.flush return value for case of zero bytes to flush. ([PR #2704](https://github.com/ponylang/ponyc/pull/2704))
 - Enable virtual terminal color output on Windows. ([PR #2702](https://github.com/ponylang/ponyc/pull/2702))

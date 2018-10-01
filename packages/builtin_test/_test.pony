@@ -51,6 +51,7 @@ actor Main is TestList
     test(_TestStringRecalc)
     test(_TestStringTruncate)
     test(_TestStringChop)
+    test(_TestStringConcatOffsetLen)
     test(_TestSpecialValuesF32)
     test(_TestSpecialValuesF64)
     test(_TestArrayAppend)
@@ -69,6 +70,10 @@ actor Main is TestList
     test(_TestAddc)
     test(_TestSubc)
     test(_TestMulc)
+    test(_TestDivc)
+    test(_TestModc)
+    test(_TestSignedPartialArithmetic)
+    test(_TestUnsignedPartialArithmetic)
     test(_TestNextPow2)
     test(_TestNumberConversionSaturation)
     test(_TestMaybePointer)
@@ -501,6 +506,7 @@ class iso _TestStringTrimInPlace is UnitTest
     case(h, "", "0123456", 4, 1, 0)
     case(h, "456", "0123456789".clone().>trim_in_place(1, 8), 3, 6, 3)
     case(h, "456", "0123456789".trim(1, 8), 3, 6, 3)
+    case(h, "", "0123456789".clone().>trim_in_place(1, 8), 3, 3, 0)
 
   fun case(
     h: TestHelper,
@@ -511,10 +517,17 @@ class iso _TestStringTrimInPlace is UnitTest
     space: USize = 0)
   =>
     let copy: String ref = orig.clone()
+    let pre_trim_pagemap = @ponyint_pagemap_get[Pointer[None]](copy.cpointer())
     copy.trim_in_place(from, to)
     h.assert_eq[String box](expected, copy)
     h.assert_eq[USize](space, copy.space())
     h.assert_eq[String box](expected, copy.clone()) // safe to clone
+    let post_trim_pagemap = @ponyint_pagemap_get[Pointer[None]](copy.cpointer())
+    if copy.space() == 0 then
+      h.assert_eq[USize](0, post_trim_pagemap.usize())
+    else
+      h.assert_eq[USize](pre_trim_pagemap.usize(), post_trim_pagemap.usize())
+    end
 
 class iso _TestStringTrimInPlaceWithAppend is UnitTest
   """
@@ -1092,6 +1105,15 @@ class iso _TestStringChop is UnitTest
     h.assert_eq[String box](expected_left, consume left)
     h.assert_eq[String box](expected_right, consume right)
 
+class iso _TestStringConcatOffsetLen is UnitTest
+  """
+  Test String.concat working correctly for non-default offset and len arguments
+  """
+  fun name(): String => "builtin/String.concat"
+
+  fun apply(h: TestHelper) =>
+    h.assert_eq[String](recover String.>concat("ABCD".values(), 1, 2) end, "BC")
+
 class iso _TestArrayAppend is UnitTest
   fun name(): String => "builtin/Array.append"
 
@@ -1226,6 +1248,7 @@ class iso _TestArrayTrimInPlace is UnitTest
     case(h, [4; 5; 6], [0; 1; 2; 3; 4; 5; 6], 4 where space = 4)
     case(h, Array[U8], [0; 1; 2; 3; 4; 5; 6], 4, 4, 0)
     case(h, Array[U8], [0; 1; 2; 3; 4; 5; 6], 4, 1, 0)
+    case(h, Array[U8], Array[U8].init(8, 1024), 1024)
 
   fun case(
     h: TestHelper,
@@ -1236,9 +1259,16 @@ class iso _TestArrayTrimInPlace is UnitTest
     space: USize = 0)
   =>
     let copy: Array[U8] ref = orig.clone()
+    let pre_trim_pagemap = @ponyint_pagemap_get[Pointer[None]](copy.cpointer())
     copy.trim_in_place(from, to)
     h.assert_eq[USize](space, copy.space())
     h.assert_array_eq[U8](expected, copy)
+    let post_trim_pagemap = @ponyint_pagemap_get[Pointer[None]](copy.cpointer())
+    if copy.space() == 0 then
+      h.assert_eq[USize](0, post_trim_pagemap.usize())
+    else
+      h.assert_eq[USize](pre_trim_pagemap.usize(), post_trim_pagemap.usize())
+    end
 
 class iso _TestArrayTrimInPlaceWithAppend is UnitTest
   """
@@ -1537,6 +1567,13 @@ trait iso SafeArithmeticTest is UnitTest
     h.assert_eq[A](expected._1, actual._1 where loc=loc)
     h.assert_eq[Bool](expected._2, actual._2 where loc=loc)
 
+  fun test_overflow[A: (Equatable[A] #read & Stringable #read)](
+    h: TestHelper,
+    actual: (A, Bool),
+    loc: SourceLoc = __loc)
+  =>
+    h.assert_eq[Bool](true, actual._2)
+
 class iso _TestAddc is SafeArithmeticTest
   """
   Test addc on various bit widths.
@@ -1747,6 +1784,233 @@ class iso _TestMulc is SafeArithmeticTest
       I128(0x4000_0000_0000_0000_0000_0000_0000_0000).mulc(-2))
     test[I128](h, (0x7fff_ffff_ffff_ffff_ffff_ffff_ffff_fffe,  true),
       I128(0x4000_0000_0000_0000_0000_0000_0000_0001).mulc(-2))
+
+class iso _TestDivc is SafeArithmeticTest
+  fun name(): String => "builtin/Divc"
+
+  fun apply(h: TestHelper) =>
+    test[U8](h, (0x20, false), U8(0x40).divc(2))
+    test_overflow[U8](h, U8(0x40).divc(0))
+
+    test[U16](h, (0x20, false), U16(0x40).divc(2))
+    test_overflow[U16](h, U16(0x40).divc(0))
+
+    test[U32](h, (0x20, false), U32(0x40).divc(2))
+    test_overflow[U32](h, U32(0x40).divc(0))
+
+    test[U64](h, (0x20, false), U64(0x40).divc(2))
+    test_overflow[U64](h, U64(0x40).divc(0))
+
+    test[ULong](h, (0x20, false), ULong(0x40).divc(2))
+    test_overflow[ULong](h, ULong(0x40).divc(0))
+
+    test[USize](h, (0x20, false), USize(0x40).divc(2))
+    test_overflow[USize](h, USize(0x40).divc(0))
+
+    test[U128](h, (0x20, false), U128(0x40).divc(2))
+    test_overflow[U128](h, U128(0x40).divc(0))
+
+    test[I8](h, (0x20, false), I8(0x40).divc(2))
+    test_overflow[I8](h, I8(0x40).divc(0))
+    test_overflow[I8](h, I8.min_value().divc(I8(-1)))
+
+    test[I16](h, (0x20, false), I16(0x40).divc(2))
+    test_overflow[I16](h, I16(0x40).divc(0))
+    test_overflow[I16](h, I16.min_value().divc(I16(-1)))
+
+    test[I32](h, (0x20, false), I32(0x40).divc(2))
+    test_overflow[I32](h, I32(0x40).divc(0))
+    test_overflow[I32](h, I32.min_value().divc(I32(-1)))
+
+    test[I32](h, (0x20, false), I32(0x40).divc(2))
+    test_overflow[I32](h, I32(0x40).divc(0))
+    test_overflow[I32](h, I32.min_value().divc(I32(-1)))
+
+    test[I64](h, (0x20, false), I64(0x40).divc(2))
+    test_overflow[I64](h, I64(0x40).divc(0))
+    test_overflow[I64](h, I64.min_value().divc(I64(-1)))
+
+    test[ILong](h, (0x20, false), ILong(0x40).divc(2))
+    test_overflow[ILong](h, ILong(0x40).divc(0))
+    test_overflow[ILong](h, ILong.min_value().divc(ILong(-1)))
+
+    test[ISize](h, (0x20, false), ISize(0x40).divc(2))
+    test_overflow[ISize](h, ISize(0x40).divc(0))
+    test_overflow[ISize](h, ISize.min_value().divc(ISize(-1)))
+
+    test[I128](h, (0x20, false), I128(0x40).divc(2))
+    test_overflow[I128](h, I128(0x40).divc(0))
+    test_overflow[I128](h, I128.min_value().divc(I128(-1)))
+
+class iso _TestModc is SafeArithmeticTest
+  fun name(): String => "builtin/Modc"
+
+  fun apply(h: TestHelper) =>
+    test[U8](h, (0x01, false), U8(0x41).modc(2))
+    test_overflow[U8](h, U8(0x40).modc(0))
+
+    test[U16](h, (0x01, false), U16(0x41).modc(2))
+    test_overflow[U16](h, U16(0x40).modc(0))
+
+    test[U32](h, (0x01, false), U32(0x41).modc(2))
+    test_overflow[U32](h, U32(0x40).modc(0))
+
+    test[U64](h, (0x01, false), U64(0x41).modc(2))
+    test_overflow[U64](h, U64(0x40).modc(0))
+
+    test[U128](h, (0x01, false), U128(0x41).modc(2))
+    test_overflow[U128](h, U128(0x40).modc(0))
+
+    test[ULong](h, (0x01, false), ULong(0x41).modc(2))
+    test_overflow[ULong](h, ULong(0x40).modc(0))
+
+    test[USize](h, (0x01, false), USize(0x41).modc(2))
+    test_overflow[USize](h, USize(0x40).modc(0))
+
+    test[I8](h, (0x01, false), I8(0x41).modc(2))
+    test[I8](h, (-0x01, false), I8(-0x41).modc(2))
+    test[I8](h, (-0x02, false), I8(-0x41).modc(-3))
+    test_overflow[I8](h, I8(0x40).modc(0))
+    test_overflow[I8](h, I8(-0x40).modc(0))
+    test_overflow[I8](h, I8.min_value().modc(-1))
+
+    test[I16](h, (0x01, false), I16(0x41).modc(2))
+    test[I16](h, (-0x01, false), I16(-0x41).modc(2))
+    test[I16](h, (-0x02, false), I16(-0x41).modc(-3))
+    test_overflow[I16](h, I16(0x40).modc(0))
+    test_overflow[I16](h, I16(-0x40).modc(0))
+    test_overflow[I16](h, I16.min_value().modc(-1))
+
+    test[I32](h, (0x01, false), I32(0x41).modc(2))
+    test[I32](h, (-0x01, false), I32(-0x41).modc(2))
+    test[I32](h, (-0x02, false), I32(-0x41).modc(-3))
+    test_overflow[I32](h, I32(0x40).modc(0))
+    test_overflow[I32](h, I32(-0x40).modc(0))
+    test_overflow[I32](h, I32.min_value().modc(-1))
+
+    test[I64](h, (0x01, false), I64(0x41).modc(2))
+    test[I64](h, (-0x01, false), I64(-0x41).modc(2))
+    test[I64](h, (-0x02, false), I64(-0x41).modc(-3))
+    test_overflow[I64](h, I64(0x40).modc(0))
+    test_overflow[I64](h, I64(-0x40).modc(0))
+    test_overflow[I64](h, I64.min_value().modc(-1))
+
+    test[I128](h, (0x01, false), I128(0x41).modc(2))
+    test[I128](h, (-0x01, false), I128(-0x41).modc(2))
+    test[I128](h, (-0x02, false), I128(-0x41).modc(-3))
+    test_overflow[I128](h, I128(0x40).modc(0))
+    test_overflow[I128](h, I128(-0x40).modc(0))
+    test_overflow[I128](h, I128.min_value().modc(-1))
+
+    test[ILong](h, (0x01, false), ILong(0x41).modc(2))
+    test[ILong](h, (-0x01, false), ILong(-0x41).modc(2))
+    test[ILong](h, (-0x02, false), ILong(-0x41).modc(-3))
+    test_overflow[ILong](h, ILong(0x40).modc(0))
+    test_overflow[ILong](h, ILong(-0x40).modc(0))
+    test_overflow[ILong](h, ILong.min_value().modc(-1))
+
+    test[ISize](h, (0x01, false), ISize(0x41).modc(2))
+    test[ISize](h, (-0x01, false), ISize(-0x41).modc(2))
+    test[ISize](h, (-0x02, false), ISize(-0x41).modc(-3))
+    test_overflow[ISize](h, ISize(0x40).modc(0))
+    test_overflow[ISize](h, ISize(-0x40).modc(0))
+    test_overflow[ISize](h, ISize.min_value().modc(-1))
+
+primitive _CommonPartialArithmeticTests[T: (Integer[T] val & Int)]
+  fun apply(h: TestHelper)? =>
+    //addition
+    h.assert_error({()? => T.max_value() +? T(1) })
+    h.assert_eq[T](T.max_value(), T.max_value() +? T(0))
+
+    // subtraction
+    h.assert_error({()? => T.min_value() -? T(1) })
+    h.assert_eq[T](T(3), T(10) -? T(7))
+
+    // multiplication
+    h.assert_error({()? => T.max_value() *? T(2) })
+    h.assert_eq[T](T(30), T(10) *? T(3))
+
+    // division
+    h.assert_error({()? => T(1) /? T(0) })
+    h.assert_eq[T](T(5), T(10) /? T(2))
+
+    // modulo
+    h.assert_error({()? => T(2) %? T(0) })
+    h.assert_eq[T](T(1), T(11) %? T(2))
+
+    // divmod
+    h.assert_error({()? => T(3).divmod_partial(T(0))? })
+    (let divr, let modr) = T(11).divmod_partial(T(2))?
+    h.assert_eq[T](T(5), divr)
+    h.assert_eq[T](T(1), modr)
+
+primitive _UnsignedPartialArithmeticTests[T: (Integer[T] val & Unsigned)]
+  fun apply(h: TestHelper) =>
+    // division
+    h.assert_no_error({()? => T.min_value() /? T(-1) })
+
+    // modulo
+    h.assert_no_error({()? => T.min_value() %? T(-1) })
+
+    // divmod
+    h.assert_no_error({()? => T.min_value().divmod_partial(T(-1))? })
+
+primitive _SignedPartialArithmeticTests[T: (Integer[T] val & Signed)]
+  fun apply(h: TestHelper) =>
+    // addition
+    h.assert_error({()? => T.min_value() +? T(-1) })
+
+    // subtraction
+    h.assert_error({()? => T.max_value() -? T(-1) })
+
+    // multiplication
+    h.assert_error({()? => T.min_value() *? T(-2) })
+
+    // division
+    h.assert_error({()? => T.min_value() /? T(-1) })
+
+    // modulo
+    h.assert_error({()? => T.min_value() %? T(-1) })
+
+    // divmod
+    h.assert_error({()? => T.min_value().divmod_partial(T(-1))? })
+
+class iso _TestSignedPartialArithmetic is UnitTest
+  fun name(): String => "builtin/PartialArithmetic/signed"
+
+  fun apply(h: TestHelper)? =>
+    _CommonPartialArithmeticTests[I8](h)?
+    _SignedPartialArithmeticTests[I8](h)
+    _CommonPartialArithmeticTests[I16](h)?
+    _SignedPartialArithmeticTests[I16](h)
+    _CommonPartialArithmeticTests[I32](h)?
+    _SignedPartialArithmeticTests[I32](h)
+    _CommonPartialArithmeticTests[I64](h)?
+    _SignedPartialArithmeticTests[I64](h)
+    _CommonPartialArithmeticTests[I128](h)?
+    _SignedPartialArithmeticTests[I128](h)
+    _CommonPartialArithmeticTests[ILong](h)?
+    _SignedPartialArithmeticTests[ILong](h)
+    _CommonPartialArithmeticTests[ISize](h)?
+    _SignedPartialArithmeticTests[ISize](h)
+
+class iso _TestUnsignedPartialArithmetic is UnitTest
+  fun name(): String => "builtin/PartialArithmetic/unsigned"
+  fun apply(h: TestHelper)? =>
+    _CommonPartialArithmeticTests[U8](h)?
+    _UnsignedPartialArithmeticTests[U8](h)
+    _CommonPartialArithmeticTests[U16](h)?
+    _UnsignedPartialArithmeticTests[U16](h)
+    _CommonPartialArithmeticTests[U32](h)?
+    _UnsignedPartialArithmeticTests[U32](h)
+    _CommonPartialArithmeticTests[U64](h)?
+    _UnsignedPartialArithmeticTests[U64](h)
+    _CommonPartialArithmeticTests[U128](h)?
+    _UnsignedPartialArithmeticTests[U128](h)
+    _CommonPartialArithmeticTests[ULong](h)?
+    _UnsignedPartialArithmeticTests[ULong](h)
+    _CommonPartialArithmeticTests[USize](h)?
+    _UnsignedPartialArithmeticTests[USize](h)
 
 class iso _TestNextPow2 is UnitTest
   """

@@ -34,6 +34,9 @@
 #elif defined(__DragonFly__)
 #  define PLATFORM_IS_BSD
 #  define PLATFORM_IS_DRAGONFLY
+#elif defined(__OpenBSD__)
+#  define PLATFORM_IS_BSD
+#  define PLATFORM_IS_OPENBSD
 #elif defined(_WIN32)
 #  define PLATFORM_IS_WINDOWS
 #  if defined(_MSC_VER)
@@ -372,6 +375,10 @@ inline uint64_t __pony_clzl(uint64_t x)
 
 #if defined(PLATFORM_IS_WINDOWS)
 #  include "vcvars.h"
+#endif
+
+#if defined(ARMV7) && !defined(__ARM_NEON) && !defined(__ARM_NEON__)
+#  define PLATFORM_IS_ARMHF_WITHOUT_NEON 1
 #endif
 
 #endif

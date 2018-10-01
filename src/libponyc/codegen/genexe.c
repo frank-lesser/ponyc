@@ -207,8 +207,9 @@ LLVMValueRef gen_main(compile_t* c, reach_type_t* t_main, reach_type_t* t_env)
   {
     LLVMValueRef final_actor = create_main(c, t_main, ctx);
     LLVMBuildCall(c->builder, c->primitives_final, NULL, 0, "");
-    args[0] = final_actor;
-    gencall_runtime(c, "ponyint_destroy", args, 1, "");
+    args[0] = ctx;
+    args[1] = final_actor;
+    gencall_runtime(c, "ponyint_destroy", args, 2, "");
   }
 
   args[0] = ctx;
@@ -277,11 +278,11 @@ static bool link_exe(compile_t* c, ast_t* program,
   const char* lib_args = program_lib_args(program);
 
   size_t arch_len = arch - c->opt->triple;
-  size_t ld_len = 128 + arch_len + strlen(file_exe) + strlen(file_o) +
-    strlen(lib_args);
+  const char* linker = c->opt->linker != NULL ? c->opt->linker : "ld";
+  size_t ld_len = 128 + arch_len + strlen(linker) + strlen(file_exe) +
+    strlen(file_o) + strlen(lib_args);
+
   char* ld_cmd = (char*)ponyint_pool_alloc_size(ld_len);
-  const char* linker = c->opt->linker != NULL ? c->opt->linker
-                                              : "ld";
 
   snprintf(ld_cmd, ld_len,
     "%s -execute -no_pie -arch %.*s "
@@ -333,7 +334,8 @@ static bool link_exe(compile_t* c, ast_t* program,
   bool fallback_linker = false;
   const char* linker = c->opt->linker != NULL ? c->opt->linker :
     env_cc_or_pony_compiler(&fallback_linker);
-  const char* mcx16_arg = target_is_ilp32(c->opt->triple) ? "" : "-mcx16";
+  const char* mcx16_arg = (target_is_lp64(c->opt->triple)
+    && target_is_x86(c->opt->triple)) ? "-mcx16" : "";
   const char* fuseld = target_is_linux(c->opt->triple) ? "-fuse-ld=gold" : "";
   const char* ldl = target_is_linux(c->opt->triple) ? "-ldl" : "";
   const char* atomic = target_is_linux(c->opt->triple) ? "-latomic" : "";
@@ -345,7 +347,8 @@ static bool link_exe(compile_t* c, ast_t* program,
     "";
 #endif
   const char* lexecinfo =
-#if (defined(PLATFORM_IS_LINUX) && !defined(__GLIBC__))
+#if (defined(PLATFORM_IS_LINUX) && !defined(__GLIBC__)) || \
+    (defined(PLATFORM_IS_BSD) && defined(DEBUG))
    "-lexecinfo";
 #else
     "";
@@ -369,7 +372,12 @@ static bool link_exe(compile_t* c, ast_t* program,
     // for backtrace reporting.
     "-rdynamic "
 #endif
+#ifdef PLATFORM_IS_OPENBSD
+    // On OpenBSD, the unwind symbols are contained within libc++abi.
+    "%s %s %s %s %s -lpthread %s %s %s -lm -lc++abi %s",
+#else
     "%s %s %s %s %s -lpthread %s %s %s -lm %s",
+#endif
     linker, file_exe, arch, mcx16_arg, atomic, staticbin, fuseld, file_o,
     lib_args, dtrace_args, ponyrt, ldl, lexecinfo
     );

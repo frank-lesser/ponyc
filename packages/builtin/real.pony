@@ -233,6 +233,48 @@ trait val Integer[A: Integer[A] val] is Real[A]
     """
     this %~ y
 
+  fun add_partial(y: A): A ?
+    """
+    Add y to this number.
+
+    If the operation overflows this function errors.
+    """
+
+  fun sub_partial(y: A): A ?
+    """
+    Subtract y from this number.
+
+    If the operation overflows/underflows this function errors.
+    """
+
+  fun mul_partial(y: A): A ?
+    """
+    Multiply y with this number.
+
+    If the operation overflows this function errors.
+    """
+
+  fun div_partial(y: A): A ?
+    """
+    Divides this number by y.
+
+    If y is `0` this function errors.
+    """
+
+  fun mod_partial(y: A): A ?
+    """
+    Calculates the remainder of this number divided by y.
+
+    If y is `0` this function errors.
+    """
+
+  fun divmod_partial(y: A): (A, A) ?
+    """
+    Divides this number by y and calculates the remainder of the operation.
+
+    If y is `0` this function errors.
+    """
+
   fun neg_unsafe(): A =>
     """
     Unsafe operation.
@@ -252,10 +294,25 @@ trait val Integer[A: Integer[A] val] is Real[A]
     """
     Multiply `y` with this integer and return the result and a flag indicating overflow.
     """
+  fun divc(y: A): (A, Bool)
+    """
+    Divide this integer by `y` and return the result and a flag indicating overflow or division by zero.
+    """
+  fun modc(y: A): (A, Bool)
+    """
+    Calculated the ramainder of this number dividec by y and return the result and a flag indicating division by zero or overflow.
+    """
+
   fun op_and(y: A): A => this and y
   fun op_or(y: A): A => this or y
   fun op_xor(y: A): A => this xor y
   fun op_not(): A => not this
+
+  fun bit_reverse(): A
+    """
+    Reverse the order of the bits within the integer.
+    For example, 0b11101101 (237) would return 0b10110111 (183).
+    """
 
   fun bswap(): A
 
@@ -344,12 +401,16 @@ trait val _UnsignedInteger[A: _UnsignedInteger[A] val] is Integer[A]
 
   fun clz_unsafe(): A
     """
+    Count leading zeroes.
+
     Unsafe operation.
     If this is 0, the result is undefined.
     """
 
   fun ctz_unsafe(): A
     """
+    Count trailing zeroes.
+
     Unsafe operation.
     If this is 0, the result is undefined.
     """
